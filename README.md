@@ -1,1 +1,1 @@
-# Muscle_Atlas
+This tool allows the estimation of mRNA levels of genes in muscle tissue and its comparison to isolated muscle fibers and several primary cell types present in muscle tissue in vivo. Because approaches using primary cells are useful to investigate the specific response of myotubes, this tool aims at providing a first estimation of the relative expression level of genes in muscle cells compared to other cells types present in muscle biopsies.
