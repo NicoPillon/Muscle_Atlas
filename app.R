@@ -2,12 +2,20 @@
 library(ggplot2)
 library(matrixStats)
 library(readr)
-header   <- read_delim("GENENAME_Mean.csv", n_max = 1, delim = ",")
-muscle <- read_delim('GENENAME_Mean.csv', delim = ",",
-                       col_types=paste(c('c', rep('n', (ncol(header)-1))), collapse=""))
+library(xlsx)
+header  <- read_delim("GENENAME_Mean.csv", n_max = 1, delim = ",")
+muscle  <- read_delim('GENENAME_Mean.csv', delim = ",",
+                      col_types=paste(c('c', rep('n', (ncol(header)-1))), collapse=""))
 muscle <- data.frame(muscle, row.names = 1)
 res <- muscle[1:(ncol(muscle)-7)]
-
+x      <- c(rep('A1', length(grep('Blood',         colnames(res)))),  #list of sample types
+            rep('A2', length(grep('Endothelial',   colnames(res)))),
+            rep('A3', length(grep('Fibroblast',    colnames(res)))),
+            rep('A4', length(grep('Macrophage',    colnames(res)))),
+            rep('A5', length(grep('Muscle_Biopsy', colnames(res)))),
+            rep('A6', length(grep('Muscle_Fiber',  colnames(res)))),
+            rep('A7', length(grep('Myocyte',       colnames(res)))),
+            rep('A8', length(grep('Smooth_muscle', colnames(res))))) 
 
 # Define UI ----
 ui <- fluidPage(theme = "bootstrap.css",
@@ -22,7 +30,7 @@ ui <- fluidPage(theme = "bootstrap.css",
       ),
       
   mainPanel(
-    plotOutput("geneName")
+    plotOutput("geneName", height="550px")
     )
   )
 )
@@ -31,17 +39,11 @@ ui <- fluidPage(theme = "bootstrap.css",
 # Define server logic ----
 server <- function(input, output) {
 
+  start_time <- Sys.time()
   select <- reactive({genename <- toupper(input$gene1)
-  x      <- c(rep('A1', length(grep('Biopsy',     colnames(muscle)))),  #list of sample types
-              rep('A2', length(grep('Blood',      colnames(muscle)))),
-              rep('A3', length(grep('Endo',       colnames(muscle)))),
-              rep('A4', length(grep('Fiber',      colnames(muscle)))),
-              rep('A5', length(grep('Fibroblast', colnames(muscle)))),
-              rep('A6', length(grep('Macrophage',        colnames(muscle)))),
-              rep('A7', length(grep('Myocyte',    colnames(muscle))))) 
   data   <- data.frame(x=factor(), y=numeric(), Gene=character(), stringsAsFactors=FALSE) #empty dataframe to collect data
   for( i in 1:length(genename)) { 
-    y     <- as.numeric(muscle[genename[i],])            #collect data for gene name i
+    y     <- as.numeric(res[genename[i],])            #collect data for gene name i
     datay <- cbind.data.frame(x, y, rep(genename[i])) #create table with x="sample type", y="data", "gene name"
     colnames(datay) <- c("x","y","Gene")              #rename column names to make it possible to rbind later
     data  <- rbind.data.frame(data, datay)            #bind the new gene data at the bottom of the previous one
@@ -52,43 +54,48 @@ server <- function(input, output) {
   
   stats <- reactive({genename <- toupper(input$gene1)
   mean <- cbind(
-    rowMeans(res[genename, grep('Biopsy', colnames(res))], na.rm=T),
-    rowMeans(res[genename, grep('Blood', colnames(res))], na.rm=T),
-    rowMeans(res[genename, grep('Endo', colnames(res))], na.rm=T),
-    rowMeans(res[genename, grep('Fiber', colnames(res))], na.rm=T),
-    rowMeans(res[genename, grep('Fibroblast', colnames(res))], na.rm=T),
-    rowMeans(res[genename, grep('Macrophage', colnames(res))], na.rm=T),
-    rowMeans(res[genename, grep('Myocyte', colnames(res))], na.rm=T))
+    rowMeans(res[genename, grepl('Blood',        colnames(res))], na.rm=T),
+    rowMeans(res[genename, grepl('Endothelial',  colnames(res))], na.rm=T),
+    rowMeans(res[genename, grepl('Fibroblast',   colnames(res))], na.rm=T),
+    rowMeans(res[genename, grepl('Macrophage',   colnames(res))], na.rm=T),
+    rowMeans(res[genename, grepl('Muscle_Biopsy',colnames(res))], na.rm=T),
+    rowMeans(res[genename, grepl('Muscle_Fiber', colnames(res))], na.rm=T),
+    rowMeans(res[genename, grepl('Myocyte',      colnames(res))], na.rm=T),
+    rowMeans(res[genename, grepl('Smooth_muscle',colnames(res))], na.rm=T))
   Sd <- cbind(
-    rowSds(as.matrix(res[genename, grep('Biopsy', colnames(res))]), na.rm=T),
-    rowSds(as.matrix(res[genename, grep('Blood', colnames(res))]), na.rm=T),
-    rowSds(as.matrix(res[genename, grep('Endo', colnames(res))]), na.rm=T),
-    rowSds(as.matrix(res[genename, grep('Fiber', colnames(res))]), na.rm=T),
-    rowSds(as.matrix(res[genename, grep('Fibroblast', colnames(res))]), na.rm=T),
-    rowSds(as.matrix(res[genename, grep('Macrophage', colnames(res))]), na.rm=T),
-    rowSds(as.matrix(res[genename, grep('Myocyte', colnames(res))]), na.rm=T))
+    rowSds(as.matrix(res[genename, grepl('Blood',        colnames(res))]), na.rm=T),
+    rowSds(as.matrix(res[genename, grepl('Endothelial',  colnames(res))]), na.rm=T),
+    rowSds(as.matrix(res[genename, grepl('Fibroblast',   colnames(res))]), na.rm=T),
+    rowSds(as.matrix(res[genename, grepl('Macrophage',   colnames(res))]), na.rm=T),
+    rowSds(as.matrix(res[genename, grepl('Muscle_Biopsy',colnames(res))]), na.rm=T),
+    rowSds(as.matrix(res[genename, grepl('Muscle_Fiber', colnames(res))]), na.rm=T),
+    rowSds(as.matrix(res[genename, grepl('Myocyte',      colnames(res))]), na.rm=T),
+    rowSds(as.matrix(res[genename, grepl('Smooth_muscle',colnames(res))]), na.rm=T))
   nsize <- cbind(
-    rowSums(!is.na(res[genename, grep('Biopsy', colnames(res))])),
-    rowSums(!is.na(res[genename, grep('Blood', colnames(res))])),
-    rowSums(!is.na(res[genename, grep('Endo', colnames(res))])),
-    rowSums(!is.na(res[genename, grep('Fiber', colnames(res))])),
-    rowSums(!is.na(res[genename, grep('Fibroblast', colnames(res))])),
-    rowSums(!is.na(res[genename, grep('Macrophage', colnames(res))])),
-    rowSums(!is.na(res[genename, grep('Myocyte', colnames(res))])))
+    rowSums(!is.na(res[genename, grepl('Blood',        colnames(res))])),
+    rowSums(!is.na(res[genename, grepl('Endothelial',  colnames(res))])),
+    rowSums(!is.na(res[genename, grepl('Fibroblast',   colnames(res))])),
+    rowSums(!is.na(res[genename, grepl('Macrophage',   colnames(res))])),
+    rowSums(!is.na(res[genename, grepl('Muscle_Biopsy',colnames(res))])),
+    rowSums(!is.na(res[genename, grepl('Muscle_Fiber', colnames(res))])),
+    rowSums(!is.na(res[genename, grepl('Myocyte',      colnames(res))])),
+    rowSums(!is.na(res[genename, grepl('Smooth_muscle',colnames(res))])))
   stats <- data.frame(t(mean), t(Sd), t(nsize))
   stats[,3] <- as.factor(stats[,3])
   colnames(stats) <- c('Mean', 'Sd', 'n')
-  rownames(stats) <- c("Muscle\nBiopsy", "Whole Blood", "Primary\nEndothelium",
-                       "Isolated\nMuscle Fiber", "Fibroblast", "Blood-derived\nMacrophage", "Primary\nMyocyte")
+  rownames(stats) <- c("Whole Blood", "Endothelial Cell", "Fibroblast", "Macrophage", 
+                       "Muscle Biopsy", "Muscle Fiber", "Primary Myocyte", "Smooth Muscle Cell")
   stats
   })
   
   plotInput <- function(){
     data <- select()
     ggplot(data, aes(x=x, y=y, fill=x)) +  geom_boxplot() +
-      scale_x_discrete(breaks=c("A1","A2","A3","A4","A5","A6", "A7"),
-                       labels=c("Muscle\nBiopsy", "Whole Blood", "Primary\nEndothelium",
-                                "Isolated\nMuscle Fiber", "Fibroblast", "Blood-derived\nMacrophage", "Primary\nMyocyte")) +
+      scale_x_discrete(breaks=c("A1","A2","A3","A4","A5","A6", "A7", "A8"),
+                       labels=c("Whole Blood", "Primary\nEndothelial Cell", "Fibroblast", 
+                                "Blood-derived\nMacrophage",
+                                "Muscle\nBiopsy", "Isolated\nMuscle Fiber", 
+                                "Primary\nMyocyte", "Primary Smooth\nMuscle Cell")) +
       labs(x="",
            y=paste(toupper(input$gene1), "expression (log2)"),
            title="",
@@ -98,10 +105,12 @@ server <- function(input, output) {
             axis.text.y = element_text(color="black", size=12, angle=0),
             axis.title  = element_text(face="bold", color="black", size=14, angle=0),
             legend.position="none", legend.title = element_blank()) +
-      geom_hline(aes(yintercept=0), linetype="dashed", show.legend=F, color="gray50") +
-      geom_text(aes(x=8, y=0.35),label="median", hjust=1, size=4, color="gray40") +
-      scale_color_manual(values=c("#D55E00", "#CC79A7", "#0072B2", "#D55E00", "#009E73","#E69F00","#D55E00")) +
-      scale_fill_manual(values=c("#D55E00", "#CC79A7", "#0072B2", "#D55E00", "#009E73","#E69F00","#D55E00"))
+      geom_hline(aes(yintercept=0), linetype="dashed", show.legend=F, color="gray60") +
+      geom_hline(aes(yintercept=max(res, na.rm=T)), linetype="dashed", show.legend=F, color="gray60") +
+      geom_hline(aes(yintercept=min(res, na.rm=T)), linetype="dashed", show.legend=F, color="gray60") +
+      geom_text(aes(x=9, y=0),label="median", hjust=1, size=4, color="gray60") +
+      geom_text(aes(x=9, y=max(res, na.rm=T)),label="max", hjust=1, size=4, color="gray60") +
+      geom_text(aes(x=9, y=min(res, na.rm=T)),label="min", hjust=1, size=4, color="gray60")
     }
   
   output$geneName <- renderPlot({
@@ -113,7 +122,7 @@ server <- function(input, output) {
   })
   
   output$downloadPlot <- downloadHandler(
-    filename = function() { paste(input$gene1, '.jpeg', sep='') },
+    filename = function() { paste(input$gene1, '_Muscle_Atlas.jpeg', sep='') },
     content = function(file) {
       png(file,
           units="cm", width=20, height=12, 
@@ -123,9 +132,9 @@ server <- function(input, output) {
     })
   
   output$downloadData <- downloadHandler(
-    filename = function() { paste(input$gene1, ".csv", sep="") },
+    filename = function() { paste(input$gene1, "_Muscle_Atlas.xlsx", sep="") },
     content = function(file) {
-      write.csv(stats(), file)
+      write.xlsx(stats(), file)
     })
 }
 
