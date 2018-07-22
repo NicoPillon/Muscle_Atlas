@@ -1,5 +1,4 @@
 # Load data ----
-options(shiny.sanitize.errors = TRUE)
 library(ggplot2)
 library(xlsx)
 
@@ -20,7 +19,7 @@ ui <- fluidPage(theme = "bootstrap.css",
                   ),
                   
                   mainPanel(
-                    plotOutput("geneName", height="550px")
+                    plotOutput("genePlot", height="550px")
                   )
                 )
 )
@@ -32,6 +31,8 @@ server <- function(input, output, session) {
   plotInput <- function(){
     genename <- toupper(input$gene1)
     data <- datalist[[genename]]
+    validate(need(!is.null(data), "\nImpossible to find data. Please make sure that you have typed the official gene name."))
+    
     gg <- ggplot(data) +  geom_boxplot(aes(x=x, y=y, fill=x)) +
       scale_x_discrete(breaks=c("A1","A2","A3","A4","A5","A6", "A7", "A8"),
                        labels=c("Whole Blood", "Primary\nEndothelial Cell", "Fibroblast", 
@@ -39,10 +40,10 @@ server <- function(input, output, session) {
                                 "Muscle\nBiopsy", "Isolated\nMuscle Fiber", 
                                 "Primary\nMyocyte", "Primary Smooth\nMuscle Cell")) +
       labs(x="",
-           y=paste(toupper(input$gene1), "expression (log2)"),
+           y=paste(genename, "expression (log2)"),
            title="",
            caption = "www.nicopillon.com") +
-      ylim(-4, 8) + scale_y_continuous(breaks = round(seq(-4, 8, by=2),1)) +
+      scale_y_continuous(breaks = round(seq(-4, 8, by=2),1)) +
       theme(axis.text.x = element_text(face="bold", color="black", size=14, angle=45, hjust=1),
             axis.text.y = element_text(color="black", size=12, angle=0),
             axis.title  = element_text(face="bold", color="black", size=14, angle=0),
@@ -56,8 +57,8 @@ server <- function(input, output, session) {
     return(gg)
   }
 
-
-  output$geneName <- renderPlot({
+  
+  output$genePlot <- renderPlot({
     plotInput()
   })
   
